@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 <style>
   :root{
     --ink:#0C1526;
@@ -445,6 +447,201 @@
     .opts{grid-template-columns:1fr;}
     .radius-row{grid-template-columns:1fr 62px 50px;}
   }
+  /* ============ CURRENCY TOGGLE ============ */
+  .curtog{display:inline-flex; border:1px solid var(--ink-4); border-radius:8px; overflow:hidden; background:var(--ink-2);}
+  .curtog button{
+    background:none; border:0; color:var(--mute-2); padding:5px 11px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.04em;
+  }
+  .curtog button.on{background:var(--signal); color:var(--ink); font-weight:700;}
+  /* the day chips scroll horizontally, so the currency toggle sits beside them */
+  .daynav-wrap{
+    display:flex; align-items:center; gap:12px;
+    max-width:var(--maxw); margin:0 auto; padding-right:20px;
+  }
+  .daynav-inner{align-items:center; flex:1; min-width:0; max-width:none; margin:0;}
+  .navcur{flex:0 0 auto; display:flex; align-items:center; gap:9px;}
+  .navcur .fxnote{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mute-2); white-space:nowrap;}
+  @media (max-width:860px){ .navcur .fxnote{display:none;} }
+  @media (max-width:560px){
+    .daynav-wrap{padding-right:12px; gap:7px;}
+    .curtog button{padding:5px 8px; font-size:10px;}
+  }
+
+  /* ============ MAP ============ */
+  .mapsec{padding:54px 0 10px; border-top:1px solid var(--line); background:linear-gradient(180deg,#0A1220,var(--ink) 60%);}
+  .mapbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:16px 0 12px;}
+  .mapbtn{
+    background:var(--ink-3); border:1px solid var(--ink-4); color:var(--mute);
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.05em;
+    padding:7px 12px; border-radius:7px; transition:all .15s;
+  }
+  .mapbtn:hover{border-color:var(--jade); color:var(--sand);}
+  .mapwrap{position:relative; border:1px solid var(--ink-4); border-radius:14px; overflow:hidden; background:var(--ink-2);}
+  #leafmap{height:520px; width:100%; background:var(--ink-2);}
+  @media (max-width:720px){ #leafmap{height:400px;} }
+  .map-fallback{
+    display:flex; align-items:center; justify-content:center; height:100%; padding:30px;
+    text-align:center; color:var(--mute-2); font-size:13.5px; line-height:1.6;
+  }
+  .leaflet-container{background:#0A1220 !important; font-family:'Inter',sans-serif;}
+  /* dark-mode the OSM raster tiles; markers and controls sit in other panes
+     and are deliberately left untouched */
+  .leaflet-tile-pane{
+    filter:invert(1) hue-rotate(180deg) brightness(.94) contrast(.86) saturate(.72);
+  }
+  .leaflet-popup-content-wrapper{
+    background:var(--ink-3); color:var(--text); border-radius:11px;
+    border:1px solid var(--ink-4); box-shadow:0 12px 34px rgba(0,0,0,.5);
+  }
+  .leaflet-popup-tip{background:var(--ink-3); border:1px solid var(--ink-4);}
+  .leaflet-popup-content{margin:12px 14px; font-size:13px; line-height:1.5;}
+  .leaflet-popup-close-button{color:var(--mute-2) !important; padding:7px 7px 0 0 !important;}
+  .leaflet-control-zoom a{
+    background:var(--ink-3) !important; color:var(--sand) !important;
+    border-color:var(--ink-4) !important;
+  }
+  .leaflet-control-zoom a:hover{background:var(--ink-4) !important;}
+  .leaflet-control-attribution{
+    background:rgba(12,21,38,.82) !important; color:var(--mute-2) !important; font-size:9.5px !important;
+  }
+  .leaflet-control-attribution a{color:var(--mute) !important;}
+  .pop-n{font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:15px; color:var(--sand); line-height:1.25;}
+  .pop-m{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--mute-2); margin-top:5px;}
+  .pop-d{font-size:12.5px; color:var(--mute); margin-top:6px;}
+  .pop-a{
+    display:inline-block; margin-top:9px; font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    color:var(--signal); text-decoration:none; border-bottom:1px dotted var(--signal);
+  }
+  .mapkey{
+    display:flex; flex-wrap:wrap; gap:10px 16px; padding:11px 14px;
+    border-top:1px solid var(--ink-4); background:var(--ink-2);
+  }
+  .mapkey span{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mute-2);
+  }
+  .mapkey i{width:9px; height:9px; border-radius:50%; display:block;}
+  .mapmiss{
+    margin-top:14px; padding:14px 16px; border:1px dashed var(--ink-4);
+    border-radius:12px; background:rgba(20,31,54,.5);
+  }
+  .mapmiss h4{font-size:13px; color:var(--sand); margin-bottom:5px;}
+  .mapmiss p{font-size:12.5px; color:var(--mute-2); margin:0 0 9px; line-height:1.5;}
+  .mapmiss-list{display:flex; flex-wrap:wrap; gap:6px;}
+  .mapmiss-list a{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--mute);
+    background:var(--ink-3); border:1px solid var(--ink-4); border-radius:6px;
+    padding:5px 9px; text-decoration:none; transition:all .15s;
+  }
+  .mapmiss-list a:hover{border-color:var(--jade); color:var(--sand);}
+
+  /* ============ TOOLKIT ============ */
+  .toolkit{padding:56px 0 50px; border-top:1px solid var(--line); background:var(--ink-2);}
+  .tk-tabs{display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 18px;}
+  .tk-tab{
+    background:var(--ink-3); border:1px solid var(--ink-4); color:var(--mute);
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.05em;
+    padding:7px 13px; border-radius:7px; transition:all .15s;
+  }
+  .tk-tab:hover{border-color:var(--jade); color:var(--sand);}
+  .tk-tab.on{background:var(--jade); border-color:var(--jade); color:var(--ink); font-weight:700;}
+  .tk-panel{display:none;}
+  .tk-panel.on{display:block;}
+  .tk-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:14px;}
+  .tk-card{
+    background:var(--ink-3); border:1px solid var(--ink-4); border-radius:13px; padding:16px 17px 17px;
+  }
+  .tk-card h4{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--signal); margin:0 0 10px; font-weight:500;
+  }
+  .tk-card h5{font-family:'Bricolage Grotesque',sans-serif; font-size:16px; color:var(--sand); margin:0 0 7px;}
+  .tk-card p{font-size:13px; color:var(--mute); margin:0 0 9px; line-height:1.55;}
+  .tk-card p:last-child{margin-bottom:0;}
+  .tk-card b{color:var(--sand);}
+  .tk-row{
+    display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    padding:8px 0; border-bottom:1px solid var(--ink-4); font-size:13px;
+  }
+  .tk-row:last-child{border-bottom:0;}
+  .tk-row .k{color:var(--mute); flex:1; min-width:0;}
+  .tk-row .v{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--sand); text-align:right; white-space:nowrap;}
+  .tk-row .v.big{font-size:15px; color:var(--signal); font-weight:700;}
+  .tk-row a.v{text-decoration:none; border-bottom:1px dotted var(--signal); color:var(--signal);}
+
+  /* converter */
+  .conv{display:flex; flex-direction:column; gap:9px;}
+  .conv-line{display:flex; align-items:center; gap:9px;}
+  .conv-line label{
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--mute-2);
+    width:38px; flex:0 0 38px;
+  }
+  .conv-line input{
+    flex:1; min-width:0; background:var(--ink-2); border:1px solid var(--ink-4); color:var(--sand);
+    border-radius:8px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:15px;
+  }
+  .conv-line input:focus{outline:none; border-color:var(--signal);}
+  .conv-quick{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .conv-quick button{
+    background:var(--ink-2); border:1px solid var(--ink-4); color:var(--mute-2);
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:5px 9px; border-radius:6px;
+  }
+  .conv-quick button:hover{border-color:var(--signal); color:var(--sand);}
+  .fxsrc{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mute-2); margin-top:10px;}
+
+  /* clocks */
+  .clocks{display:flex; gap:12px;}
+  .clock{flex:1; text-align:center; padding:12px 8px; background:var(--ink-2); border-radius:10px; border:1px solid var(--ink-4);}
+  .clock .city{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--mute-2);}
+  .clock .t{font-family:'JetBrains Mono',monospace; font-size:23px; color:var(--sand); font-weight:700; margin-top:5px; letter-spacing:-0.01em;}
+  .clock .d{font-size:11px; color:var(--mute-2); margin-top:3px;}
+
+  /* weather */
+  .wx{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
+  .wx-d{
+    flex:0 0 74px; text-align:center; padding:11px 5px; border-radius:10px;
+    background:var(--ink-2); border:1px solid var(--ink-4);
+  }
+  .wx-d.trip{border-color:var(--signal); background:var(--signal-ghost);}
+  .wx-dow{font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.08em; color:var(--mute-2); text-transform:uppercase;}
+  .wx-ic{font-size:21px; margin:5px 0 3px; line-height:1;}
+  .wx-t{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sand);}
+  .wx-t small{color:var(--mute-2);}
+  .wx-r{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--jade); margin-top:3px;}
+
+  /* phrases */
+  .ph-row{display:flex; gap:12px; padding:9px 0; border-bottom:1px solid var(--ink-4); align-items:baseline;}
+  .ph-row:last-child{border-bottom:0;}
+  .ph-en{flex:1; font-size:12.5px; color:var(--mute-2); min-width:0;}
+  .ph-vi{flex:1.1; font-size:13.5px; color:var(--sand); font-weight:600; min-width:0;}
+  .ph-sa{flex:1; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--jade); min-width:0;}
+
+  /* checklist */
+  .ck{display:flex; flex-direction:column;}
+  .ck label{
+    display:flex; gap:10px; align-items:flex-start; padding:8px 0;
+    border-bottom:1px solid var(--ink-4); font-size:13px; color:var(--mute); cursor:pointer;
+  }
+  .ck label:last-of-type{border-bottom:0;}
+  .ck input{
+    appearance:none; -webkit-appearance:none; flex:0 0 17px; width:17px; height:17px; margin-top:1px;
+    border:1px solid var(--line); border-radius:5px; background:var(--ink-2); position:relative; cursor:pointer;
+  }
+  .ck input:checked{background:var(--jade); border-color:var(--jade);}
+  .ck input:checked::after{
+    content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:var(--ink); font-weight:700;
+  }
+  .ck input:checked + span{color:var(--mute-2); text-decoration:line-through;}
+  .ck-reset{
+    margin-top:11px; align-self:flex-start; background:none; border:1px solid var(--ink-4);
+    color:var(--mute-2); font-family:'JetBrains Mono',monospace; font-size:10px;
+    padding:5px 10px; border-radius:6px;
+  }
+  .ck-reset:hover{border-color:var(--rose); color:var(--rose);}
+  .sos{color:var(--rose) !important; font-size:17px !important; font-weight:700;}
+
 </style>
 </head>
 <body>
@@ -477,9 +674,23 @@
   </div>
 </header>
 
-<nav class="daynav"><div class="daynav-inner" id="dayNav"></div></nav>
+<nav class="daynav"><div class="daynav-wrap"><div class="daynav-inner" id="dayNav"></div><div class="navcur"><span class="fxnote"></span><div class="curtog" role="group" aria-label="Currency"><button data-cur="vnd" class="on">₫ VND</button><button data-cur="php">₱ PHP</button></div></div></div></nav>
 
 <main id="days"></main>
+
+<section class="mapsec" id="mapsec">
+  <div class="wrap">
+    <div class="eyebrow">Everything, placed</div>
+    <h2>The map</h2>
+    <p class="desc">Every place on this page that has a known location, pinned around the hotel. The two rings are a rough five- and fifteen-minute walk from the front door.</p>
+    <div class="mapbar" id="mapChips"></div>
+    <div class="mapwrap">
+      <div id="leafmap"></div>
+      <div class="mapkey" id="mapKey"></div>
+    </div>
+    <div class="mapmiss" id="mapMiss" hidden></div>
+  </div>
+</section>
 
 <section class="budget">
   <div class="wrap">
@@ -644,6 +855,136 @@
     <button class="tbtn dgr" id="fDelete" hidden>Delete this place</button>
   </div>
 </div>
+
+<section class="toolkit" id="toolkit">
+  <div class="wrap">
+    <div class="eyebrow">On the ground</div>
+    <h2>Travel kit</h2>
+    <p class="desc">The things you actually reach for mid-trip — rates, numbers, times and words — in one place rather than scattered across six browser tabs.</p>
+
+    <div class="tk-tabs" id="tkTabs"></div>
+
+    <!-- MONEY -->
+    <div class="tk-panel" id="tk-money">
+      <div class="tk-grid">
+        <div class="tk-card">
+          <h4>Converter</h4>
+          <div class="conv">
+            <div class="conv-line"><label for="convVnd">₫</label><input id="convVnd" type="text" inputmode="numeric" value="100000" aria-label="Vietnamese dong"></div>
+            <div class="conv-line"><label for="convPhp">₱</label><input id="convPhp" type="text" inputmode="decimal" aria-label="Philippine pesos"></div>
+            <div class="conv-line"><label for="convUsd">$</label><input id="convUsd" type="text" inputmode="decimal" aria-label="US dollars"></div>
+            <div class="conv-quick" id="convQuick"></div>
+          </div>
+          <div class="fxsrc" id="fxSrc">Rate loading…</div>
+        </div>
+
+        <div class="tk-card">
+          <h4>Notes in your hand</h4>
+          <p>Vietnamese notes all carry a lot of zeros, and the 20,000₫ and 500,000₫ are a similar blue. Check the number, not the colour.</p>
+          <div id="noteTable"></div>
+        </div>
+
+        <div class="tk-card">
+          <h4>Rules of thumb</h4>
+          <p><b>Drop two zeros, then divide by four.</b> 200,000₫ → 2,000 ÷ 4 ≈ ₱500. It lands within a few percent at today's rate — close enough to know if you are being overcharged.</p>
+          <p>ATMs cap most withdrawals around 2–5 million₫ and charge 22,000–55,000₫ a go. Take the largest amount you are comfortable with, fewer times.</p>
+          <p>Decline the ATM's own "convert to PHP" offer — that is dynamic currency conversion and always the worse rate. Always choose to be charged in ₫.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMERGENCY -->
+    <div class="tk-panel" id="tk-sos">
+      <div class="tk-grid">
+        <div class="tk-card">
+          <h4>Emergency — dial free from any phone</h4>
+          <div class="tk-row"><span class="k">Police</span><a class="v sos" href="tel:113">113</a></div>
+          <div class="tk-row"><span class="k">Fire</span><a class="v sos" href="tel:114">114</a></div>
+          <div class="tk-row"><span class="k">Ambulance</span><a class="v sos" href="tel:115">115</a></div>
+          <div class="tk-row"><span class="k">Search &amp; rescue</span><a class="v" href="tel:112">112</a></div>
+          <p style="margin-top:11px">Operators answer in Vietnamese and English is not guaranteed. If you can, have hotel reception or a bystander speak for you.</p>
+        </div>
+
+        <div class="tk-card">
+          <h4>Philippine Embassy, Hanoi</h4>
+          <p>There is no Philippine post in Đà Nẵng. Hanoi covers you; the consulate general is in Ho Chi Minh City.</p>
+          <div class="tk-row"><span class="k">24/7 emergency (ATN)</span><a class="v" href="tel:+84904126164">+84 904 126 164</a></div>
+          <div class="tk-row"><span class="k">Embassy, office hours</span><a class="v" href="tel:+842439437873">+84 24 3943 7873</a></div>
+          <div class="tk-row"><span class="k">Consulate, HCMC</span><a class="v" href="tel:+842835180045">+84 28 3518 0045</a></div>
+          <p style="margin-top:11px">The 24/7 line also works on Viber, WhatsApp and Zalo — useful when you have data but no credit.</p>
+        </div>
+
+        <div class="tk-card">
+          <h4>Before anything goes wrong</h4>
+          <p>Photograph your passport, visa-exemption stamp and travel insurance, and message them to yourself. A phone in a hotel safe is no use on a beach.</p>
+          <p>Save the hotel's name in Vietnamese — <b>Centre Hotel, 18–20 Phạm Phú Thứ, Hải Châu</b> — as a note you can show a driver.</p>
+          <p>Hospitals used to foreigners: <b>Family Medical Practice Đà Nẵng</b> and <b>Hoan My Đà Nẵng</b>. Both take card and speak English; most public hospitals do neither.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIME & WEATHER -->
+    <div class="tk-panel" id="tk-time">
+      <div class="tk-grid">
+        <div class="tk-card">
+          <h4>Clocks</h4>
+          <div class="clocks">
+            <div class="clock"><div class="city">Manila</div><div class="t" id="clkMnl">—</div><div class="d" id="clkMnlD">—</div></div>
+            <div class="clock"><div class="city">Đà Nẵng</div><div class="t" id="clkDad">—</div><div class="d" id="clkDadD">—</div></div>
+          </div>
+          <p style="margin-top:12px">Vietnam runs on <b>UTC+7</b>, one hour behind Manila. A 07:00 start here is 08:00 to everyone at home — worth remembering before you call anyone.</p>
+        </div>
+
+        <div class="tk-card" style="grid-column:1/-1">
+          <h4>Forecast — Đà Nẵng</h4>
+          <div class="wx" id="wxDays"><span style="color:var(--mute-2);font-size:12.5px">Loading forecast…</span></div>
+          <p style="margin-top:12px" id="wxNote">Early October is the start of the wet season and sits inside typhoon season. Treat any forecast more than a few days out as a mood, not a plan, and keep Day 3 and Day 4 swappable.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHRASES -->
+    <div class="tk-panel" id="tk-say">
+      <div class="tk-grid">
+        <div class="tk-card" style="grid-column:1/-1">
+          <h4>Enough Vietnamese to be polite</h4>
+          <p>Say-it column is a rough English approximation, not real phonetics — Vietnamese is tonal and you will be a little wrong. People are generous about it.</p>
+          <div id="phrases"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY & PREP -->
+    <div class="tk-panel" id="tk-prep">
+      <div class="tk-grid">
+        <div class="tk-card">
+          <h4>Entry, Philippine passport</h4>
+          <p><b>Visa-free for 21 days.</b> Six nights is comfortably inside it, so no e-visa needed for this trip.</p>
+          <p>Carry a <b>return or onward ticket</b> — immigration can ask, and airlines sometimes check at boarding in Manila.</p>
+          <p>Keep <b>six months' passport validity</b> beyond your entry date as the safe default.</p>
+          <p style="color:var(--mute-2);font-size:11.5px">Rules change. Reconfirm on the Vietnamese embassy site before you fly.</p>
+        </div>
+
+        <div class="tk-card">
+          <h4>Plugs, data, practicalities</h4>
+          <div class="tk-row"><span class="k">Mains</span><span class="v">220V · 50Hz</span></div>
+          <div class="tk-row"><span class="k">Sockets</span><span class="v">Type A · C · F</span></div>
+          <div class="tk-row"><span class="k">Country code</span><span class="v">+84</span></div>
+          <div class="tk-row"><span class="k">Water</span><span class="v">Bottled only</span></div>
+          <p style="margin-top:11px">Philippine two-flat-pin chargers fit Type A sockets directly. Anything with a third pin needs an adapter.</p>
+          <p>Grab is the default for taxis and food. It needs data, so sort the eSIM at the airport before you leave the terminal.</p>
+        </div>
+
+        <div class="tk-card">
+          <h4>Pack &amp; prep</h4>
+          <div class="ck" id="ckList"></div>
+          <button class="ck-reset" id="ckReset">Reset list</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
 
 <footer>
   <div class="wrap">
@@ -1010,6 +1351,183 @@ var CATS=[
   {k:'food',l:'Food'},{k:'spa',l:'Spa'},{k:'exp',l:'Experiences'},{k:'night',l:'Nightlife'}
 ];
 
+/* ---------- PLACES ----------
+   Coordinates come from OpenStreetMap and were accepted only where the returned
+   POI name matched the venue, then cross-checked against the walk/ride times in
+   the itinerary. Places OSM does not know carry no lat/lon and are listed in the
+   map panel as a Maps search instead of a pin. */
+var PLACES = {
+  hotel:{n:"Centre Hotel",c:'base',lat:16.067349,lon:108.224339},
+  hanmarket:{n:"Hàn Market",c:'sight',lat:16.068352,lon:108.224283},
+  cathedral:{n:"Đà Nẵng Cathedral",c:'sight',lat:16.066683,lon:108.223058},
+  cham:{n:"Museum of Cham Sculpture",c:'museum',lat:16.060121,lon:108.223084},
+  fineArts:{n:"Đà Nẵng Fine Arts Museum",c:'museum',lat:16.071366,lon:108.217686},
+  library:{n:"Đà Nẵng General Science Library",c:'work',lat:16.073774,lon:108.224146},
+  dnMuseum:{n:"Đà Nẵng Museum",c:'museum'},
+  anthoi:{n:"Ăn Thôi",c:'food',lat:16.06831,lon:108.224918},
+  bepcuon:{n:"Bếp Cuốn Đà Nẵng",c:'food',lat:16.057878,lon:108.245227},
+  bepxua:{n:"Nhà Bếp Xưa",c:'food',lat:16.066175,lon:108.24424},
+  moc:{n:"Mộc Quán Seafood",c:'food'},
+  craftbeer:{n:"Đà Nẵng Rooftop Craft Beer",c:'night'},
+  bachdang:{n:"Bạch Đằng Riverside Promenade",c:'sight',lat:16.066701,lon:108.224813},
+  noi:{n:"Nối Café",c:'coffee',lat:16.073765,lon:108.221602},
+  marble:{n:"Marble Mountains",c:'sight',lat:16.010798,lon:108.253178},
+  ladies:{n:"2 Ladies Kitchen",c:'food'},
+  bamijoy:{n:"Bami Joy Bánh Mì",c:'food'},
+  sixonsix:{n:"Six on Six Cafe",c:'coffee',lat:16.043295,lon:108.24419},
+  julius:{n:"Julius Spa & Massage",c:'spa'},
+  qb:{n:"Q&B Luxury Spa",c:'spa'},
+  mykhe:{n:"Mỹ Khê Beach",c:'sight',lat:16.075625,lon:108.246878},
+  renora:{n:"Renora Wellness Spa & Onsen",c:'onsen'},
+  them:{n:"Thèm Hải Sản",c:'food',lat:16.057006,lon:108.245402},
+  thiago:{n:"Thìa Gỗ Restaurant",c:'food',lat:16.053212,lon:108.24153},
+  rori:{n:"RoRi Bánh Mì & Cafe",c:'food'},
+  dragon:{n:"Dragon Bridge",c:'sight',lat:16.061168,lon:108.227897},
+  dragonball:{n:"Dragon Ball Rooftop Bar",c:'night'},
+  cruise:{n:"Hàn River Cruise Pier",c:'exp',lat:16.077319,lon:108.224084},
+  bana:{n:"Bà Nà Hills & Golden Bridge",c:'sight',lat:15.995857,lon:107.989071},
+  bancoo:{n:"Bàn Cờ Peak",c:'sight',lat:16.118929,lon:108.272004},
+  haivan:{n:"Hải Vân Pass",c:'sight',lat:16.169143,lon:108.126262},
+  myhanh:{n:"My Hanh Seafood",c:'food',lat:16.065317,lon:108.246041},
+  hoian:{n:"Hội An Ancient Town",c:'sight',lat:15.877129,lon:108.328663},
+  cookvy:{n:"Cooking class by Vy",c:'exp'},
+  cookkien:{n:"Eco cooking class by Kiên",c:'exp'},
+  cookphu:{n:"Cooking class by Ms Phu",c:'exp'},
+  basket:{n:"Cẩm Thanh Basket Boats",c:'exp'},
+  anbang:{n:"An Bàng Beach",c:'sight'},
+  merooftop:{n:"Mê Hội An Rooftop",c:'food',lat:15.877169,lon:108.326831},
+  ladybuddha:{n:"Lady Buddha, Linh Ứng Pagoda",c:'sight'},
+  dongDinh:{n:"Đồng Đình Museum",c:'museum',lat:16.101213,lon:108.27551},
+  ohlala:{n:"Oh la la Breakfast & Brunch",c:'food'},
+  byc:{n:"byC. café and brunch",c:'coffee'},
+  clover:{n:"Clover Spa",c:'spa'},
+  bliss:{n:"Bliss Spa",c:'spa'},
+  hcmMuseum:{n:"Ho Chi Minh Museum",c:'museum',lat:16.046445,lon:108.218247},
+  yuki:{n:"Yuki Garden Coffee",c:'coffee'},
+  zenOnsen:{n:"Zen Herbal Onsen Spa",c:'onsen'},
+  gypsy:{n:"Gypsy Rooftop Restaurant & Bar",c:'food'},
+  theview:{n:"The View — Yacht Restaurant",c:'food'},
+  noc:{n:"Nóc Rooftop",c:'night'},
+  helio:{n:"Helio Night Market",c:'night',lat:16.036183,lon:108.224724},
+  joy:{n:"The Joy Cafe",c:'coffee'},
+  highlight:{n:"Highlight Da Nang",c:'coffee'},
+  longbeach:{n:"Long Beach Seafood",c:'food',lat:16.038791,lon:108.244803},
+  harbour:{n:"Harbour Rooftop",c:'night'},
+  cruise7:{n:"7 Stars Cruises",c:'exp'},
+  ikigai:{n:"IKIGAI Garden Cafe",c:'coffee'},
+  cafeholic:{n:"Cafeholic Coffee",c:'coffee'},
+  mew:{n:"Mew Roastery",c:'coffee'},
+  roost:{n:"Roost Coffee Roasters",c:'coffee'},
+  xliii:{n:"XLIII Specialty Coffee",c:'coffee',lat:16.048087,lon:108.246023},
+  oslow:{n:"Oslow Coffee",c:'coffee'},
+  ebisu:{n:"Núi Thần Tài Hot Springs",c:'onsen'},
+  mikazuki:{n:"Mikazuki Japanese Resorts & Spa",c:'onsen'},
+  phuongnam:{n:"Phương Nam Bookstore",c:'work',lat:16.064509,lon:108.22003},
+  fahasa:{n:"FAHASA Đà Nẵng",c:'work',lat:16.066969,lon:108.21391},
+  avocado:{n:"Avocado Bookstore & Cafe",c:'work',lat:15.874193,lon:108.332223},
+  cloudz:{n:"CloudZ Cyber iCafe",c:'work'},
+  cybertron:{n:"Cybertron Gaming",c:'work'},
+  unicorn:{n:"Unicorn Cyber Game & Coffee",c:'work'}
+};
+
+/* option + library names -> place key */
+var PLACE_OF = {
+  "Hotel breakfast":'hotel',
+  "Hàn Market + riverfront loop":'hanmarket',
+  "Hàn Market, final run":'hanmarket',
+  "Đà Nẵng Cathedral + backstreets":'cathedral',
+  "Cham Museum":'cham',
+  "Cham Museum + slow city morning":'cham',
+  "Cham Sculpture Museum":'cham',
+  "Danang Fine Arts Museum":'fineArts',
+  "Fine Arts Museum + Cafeholic":'fineArts',
+  "Library + Đà Nẵng Museum":'library',
+  "Đà Nẵng General Science Library":'library',
+  "Đà Nẵng Museum":'dnMuseum',
+  "Ăn Thôi":'anthoi',
+  "Bếp Cuốn Đà Nẵng":'bepcuon',
+  "Nhà Bếp Xưa":'bepxua',
+  "Mộc Quán Seafood":'moc',
+  "Đà Nẵng Rooftop Craft Beer":'craftbeer',
+  "Bạch Đằng riverside walk":'bachdang',
+  "One more river walk":'bachdang',
+  "Nothing — sit by the river":'bachdang',
+  "Nối Café":'noi',
+  "Marble Mountains (Thủy Sơn)":'marble',
+  "Marble Mountains":'marble',
+  "2 Ladies Kitchen":'ladies',
+  "Bami Joy Bánh Mì":'bamijoy',
+  "Six on Six Cafe":'sixonsix',
+  "Julius Spa & Massage":'julius',
+  "Julius Spa":'julius',
+  "Q&B Luxury Spa":'qb',
+  "Mỹ Khê Beach, doing nothing":'mykhe',
+  "Mỹ Khê Beach":'mykhe',
+  "Renora Wellness — onsen & ice bath":'renora',
+  "Renora Wellness Spa & Onsen":'renora',
+  "Thèm Hải Sản":'them',
+  "Thìa Gỗ Restaurant":'thiago',
+  "RoRi Bánh Mì & Cafe":'rori',
+  "Riverside promenade":'dragon',
+  "Fire show, take two":'dragon',
+  "Dragon Ball Rooftop Bar":'dragonball',
+  "Hàn River cruise":'cruise',
+  "Bà Nà Hills & Golden Bridge":'bana',
+  "Sơn Trà + Bàn Cờ Peak by bike":'bancoo',
+  "Bàn Cờ Peak":'bancoo',
+  "Hải Vân Pass day trip":'haivan',
+  "My Hanh Seafood":'myhanh',
+  "Just wander the Old Town":'hoian',
+  "Street food along the river":'hoian',
+  "Cooking class by Vy":'cookvy',
+  "Eco cooking class by Kiên":'cookkien',
+  "Eco class by Kiên":'cookkien',
+  "Cooking class by Ms Phu":'cookphu',
+  "Class by Ms Phu":'cookphu',
+  "Cẩm Thanh basket boats":'basket',
+  "Basket boats — smaller operator":'basket',
+  "An Bàng Beach":'anbang',
+  "Mê Hội An Rooftop":'merooftop',
+  "Lady Buddha & Linh Ứng Pagoda":'ladybuddha',
+  "Lady Buddha + Đồng Đình Museum":'ladybuddha',
+  "Lady Buddha":'ladybuddha',
+  "Đồng Đình Museum":'dongDinh',
+  "Oh la la! Breakfast & Brunch":'ohlala',
+  "byC. café and brunch":'byc',
+  "Clover Spa":'clover',
+  "Bliss Spa":'bliss',
+  "Ho Chi Minh Museum + Yuki Garden":'hcmMuseum',
+  "Ho Chi Minh Museum":'hcmMuseum',
+  "Yuki Garden Coffee":'yuki',
+  "Zen Herbal Onsen Spa":'zenOnsen',
+  "Gypsy Rooftop Restaurant & Bar":'gypsy',
+  "Gypsy Rooftop":'gypsy',
+  "The View — Yacht Restaurant":'theview',
+  "The View — Yacht":'theview',
+  "Nóc Rooftop":'noc',
+  "Helio Night Market":'helio',
+  "The Joy Cafe":'joy',
+  "Highlight Da Nang":'highlight',
+  "Long Beach Seafood":'longbeach',
+  "Harbour Rooftop":'harbour',
+  "7 Stars Cruises":'cruise7',
+  "IKIGAI Garden Cafe":'ikigai',
+  "Cafeholic Coffee":'cafeholic',
+  "Mew Roastery":'mew',
+  "Roost Coffee Roasters":'roost',
+  "XLIII Specialty Coffee":'xliii',
+  "Oslow Coffee":'oslow',
+  "Núi Thần Tài / Ebisu Onsen":'ebisu',
+  "Mikazuki Onsen":'mikazuki',
+  "Phuong Nam Bookstore":'phuongnam',
+  "FAHASA Đà Nẵng":'fahasa',
+  "Avocado Bookstore & Cafe":'avocado',
+  "CloudZ Cyber iCafe":'cloudz',
+  "Cybertron Gaming":'cybertron',
+  "Unicorn Cyber Game & Coffee":'unicorn'
+};
+
+
 /* ---------- STATE ---------- */
 var picks={};              // slotKey -> optionId
 var custom=[];             // user-added listings
@@ -1079,7 +1597,7 @@ function optHTML(o,key){
       thumb+
       '<span class="opt-main">'+
         '<span class="opt-name">'+esc(o.name)+(o.mine?'<span class="mine-tag">yours</span>':'')+'</span>'+
-        '<span class="opt-meta"><span class="cost">'+esc(o.meta||'')+'</span><span class="dist">'+esc(o.dist||'')+'</span></span>'+
+        '<span class="opt-meta"><span class="cost">'+esc(metaCur(o.meta||''))+'</span><span class="dist">'+esc(o.dist||'')+'</span></span>'+
         (o.blurb?'<span class="opt-blurb">'+esc(o.blurb)+'</span>':'')+
         (o.warn?'<span class="opt-warn">▲ '+esc(o.warn)+'</span>':'')+
       '</span>'+
@@ -1102,7 +1620,7 @@ function renderDays(){
         h+='<li class="leg"><span class="leg-body">'+
            '<span class="leg-mode">'+esc(b.mode)+'</span><span class="leg-sep">│</span>'+
            esc(b.mins)+' min<span class="leg-sep">│</span>'+
-           (b.cost?vnd(b.cost):'free')+'<span class="leg-sep">│</span>'+
+           (b.cost?money(b.cost):'free')+'<span class="leg-sep">│</span>'+
            esc(b.from)+' → '+esc(b.to)+
            '</span></li>';
       } else if(b.k==='fix'){
@@ -1163,10 +1681,10 @@ function computeBudget(){
 
 function renderBudget(){
   var b=computeBudget();
-  document.getElementById('budgetVnd').textContent=vnd(b.total);
-  document.getElementById('budgetUsd').textContent='≈ US$'+Math.round(b.total/RATE).toLocaleString('en-US')+' · for two, on-the-ground costs only';
+  document.getElementById('budgetVnd').textContent=CUR==='php'?fmtPhp(b.total):vnd(b.total);
+  document.getElementById('budgetUsd').textContent=(CUR==='php'?'≈ '+vnd(b.total):'≈ '+fmtPhp(b.total))+' · ≈ US$'+Math.round(usd(b.total)).toLocaleString('en-US')+' · for two, on-the-ground costs only';
   document.getElementById('budgetBreak').innerHTML=b.rows.map(function(r){
-    return '<div class="bbreak-row"><span>'+esc(r.label)+'</span><span>'+vnd(r.val)+'</span></div>';
+    return '<div class="bbreak-row"><span>'+esc(r.label)+'</span><span>'+money(r.val)+'</span></div>';
   }).join('');
   return b;
 }
@@ -1197,7 +1715,7 @@ function renderLib(){
       (e.img?'<img src="'+e.img+'" alt="" width="720" height="480" loading="lazy" decoding="async">':'')+
       '<div class="libcard-b">'+
         '<div class="libcard-n">'+esc(e.name)+(e.mine?'<span class="mine-tag">yours</span>':'')+'</div>'+
-        '<div class="libcard-m">'+esc(e.meta||'')+(e.dist?' · '+esc(e.dist):'')+'</div>'+
+        '<div class="libcard-m">'+esc(metaCur(e.meta||''))+(e.dist?' · '+esc(e.dist):'')+'</div>'+
         (where?'<div class="libcard-slot">Assigned to '+esc(where)+'</div>':'')+
         (e.blurb?'<div class="libcard-d">'+esc(e.blurb)+'</div>':'<div class="libcard-d"></div>')+
         '<div class="libcard-f">'+
@@ -1218,7 +1736,7 @@ function renderTray(){
     body.innerHTML='<div class="tray-empty">Nothing picked yet.<br>Tap an option in any slot and it lands here.</div>';
     return;
   }
-  var h='<div class="tray-sum"><b>'+vnd(b.total)+'</b> · ≈ US$'+Math.round(b.total/RATE).toLocaleString('en-US')+' for two<br>'+n+' of '+countSlots()+' slots chosen</div>';
+  var h='<div class="tray-sum"><b>'+moneyBoth(b.total)+'</b> · ≈ US$'+Math.round(usd(b.total)).toLocaleString('en-US')+' for two<br>'+n+' of '+countSlots()+' slots chosen</div>';
   DAYS.forEach(function(d){
     var rows=[];
     d.blocks.forEach(function(bl){
@@ -1307,7 +1825,7 @@ function saveForm(){
     key:  key,
     img:  null
   };
-  rec.meta = costNum ? vnd(costNum)+' for two' : 'Cost not set';
+  rec.meta = costNum ? money(costNum)+' for two' : 'Cost not set';
 
   if(editingId){
     custom = custom.map(function(c){ return c.id===editingId?rec:c; });
@@ -1419,7 +1937,7 @@ document.getElementById('copyBtn').addEventListener('click',function(){
     L.push('DAY '+d.n+' · '+d.dow+' '+d.date+' — '+d.title);
     L=L.concat(rows); L.push('');
   });
-  L.push('Estimated on-the-ground cost for two: '+vnd(b.total)+' (≈ US$'+Math.round(b.total/RATE).toLocaleString('en-US')+')');
+  L.push('Estimated on-the-ground cost for two: '+moneyBoth(b.total)+' (≈ US$'+Math.round(usd(b.total)).toLocaleString('en-US')+')');
   L.push('Excludes flights and accommodation.');
   var txt=L.join('\n'), btn=this;
   function flash(msg){
@@ -1491,6 +2009,469 @@ document.addEventListener('error', function(e){
   if(el.parentNode) el.parentNode.replaceChild(ph, el);
 }, true);
 
+/* ============================================================
+   CURRENCY — VND / PHP / USD
+   Live rate from open.er-api.com, cached for 12h, with a pinned
+   fallback so the page still prices correctly with no connection.
+   ============================================================ */
+var FX = {
+  vndPerPhp: 411.68,      // pinned 2026-09-14
+  vndPerUsd: 26000,
+  live: false,
+  at: '14 Sep 2026'
+};
+var CUR = 'vnd';          // primary currency for inline figures
+
+function loadFx(){
+  var cached=null;
+  try{ cached=JSON.parse(localStorage.getItem('dn_fx')||'null'); }catch(e){}
+  if(cached && cached.vndPerPhp && (Date.now()-cached.ts) < 43200000){
+    FX.vndPerPhp=cached.vndPerPhp; FX.vndPerUsd=cached.vndPerUsd;
+    FX.live=true; FX.at=cached.at; paintFx(); return;
+  }
+  fetch('https://open.er-api.com/v6/latest/PHP')
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j || !j.rates || !j.rates.VND) throw new Error('no rate');
+      FX.vndPerPhp = j.rates.VND;
+      FX.vndPerUsd = j.rates.VND / (j.rates.USD || (1/58));
+      FX.live = true;
+      FX.at = (j.time_last_update_utc||'').slice(5,16) || 'today';
+      try{ localStorage.setItem('dn_fx', JSON.stringify({
+        vndPerPhp:FX.vndPerPhp, vndPerUsd:FX.vndPerUsd, at:FX.at, ts:Date.now()
+      })); }catch(e){}
+      paintFx();
+    })
+    .catch(function(){ paintFx(); });
+}
+
+function php(v){ return v / FX.vndPerPhp; }
+function usd(v){ return v / FX.vndPerUsd; }
+
+function fmtPhp(v){
+  var p=php(v);
+  return '₱'+(p>=100 ? Math.round(p).toLocaleString('en-US')
+                     : p.toFixed(p>=10?1:2));
+}
+/* primary figure, respecting the toggle */
+function money(v){ return CUR==='php' ? fmtPhp(v) : vnd(v); }
+/* meta strings carry their own written-out ₫ figures; convert those in peso mode */
+function metaCur(s){
+  if(CUR!=='php') return s;
+  return String(s).replace(/(\d[\d,]*)\s*₫/g, function(_,d){ return fmtPhp(+d.replace(/,/g,'')); });
+}
+/* both, for totals where there is room */
+function moneyBoth(v){ return vnd(v)+'  ·  '+fmtPhp(v); }
+
+function paintFx(){
+  var el=document.getElementById('fxSrc');
+  if(el){
+    el.textContent = '1,000₫ ≈ '+fmtPhp(1000)+'   ·   ₱1 ≈ '+Math.round(FX.vndPerPhp).toLocaleString('en-US')+'₫'
+      + (FX.live ? '   ·   live rate, '+FX.at : '   ·   offline fallback rate, '+FX.at);
+  }
+  var note=document.querySelector('.navcur .fxnote');
+  if(note) note.textContent='₱1 ≈ '+Math.round(FX.vndPerPhp).toLocaleString('en-US')+'₫';
+  renderConv(document.getElementById('convVnd'));
+  renderNotes();
+  renderBudget(); renderTray(); renderDays(); renderLib();
+}
+
+function setCur(c){
+  CUR=c;
+  try{ localStorage.setItem('dn_cur',c); }catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll('.curtog button'),function(b){
+    b.classList.toggle('on', b.dataset.cur===c);
+  });
+  renderDays(); renderBudget(); renderTray(); renderLib();
+}
+
+/* ---------- converter ---------- */
+function num(s){ var n=parseFloat(String(s).replace(/[^0-9.]/g,'')); return isFinite(n)?n:0; }
+
+function renderConv(src){
+  var v=document.getElementById('convVnd'), p=document.getElementById('convPhp'), u=document.getElementById('convUsd');
+  if(!v||!p||!u) return;
+  var vndVal;
+  if(src===p)      vndVal = num(p.value) * FX.vndPerPhp;
+  else if(src===u) vndVal = num(u.value) * FX.vndPerUsd;
+  else             vndVal = num(v.value);
+  if(src!==v) v.value = Math.round(vndVal).toLocaleString('en-US');
+  if(src!==p) p.value = (vndVal/FX.vndPerPhp).toFixed(2);
+  if(src!==u) u.value = (vndVal/FX.vndPerUsd).toFixed(2);
+}
+
+var QUICK=[20000,50000,100000,200000,500000,1000000];
+function renderQuick(){
+  var el=document.getElementById('convQuick'); if(!el) return;
+  el.innerHTML=QUICK.map(function(q){
+    return '<button data-q="'+q+'">'+(q/1000)+'k₫</button>';
+  }).join('');
+}
+var NOTES=[1000,2000,5000,10000,20000,50000,100000,200000,500000];
+function renderNotes(){
+  var el=document.getElementById('noteTable'); if(!el) return;
+  el.innerHTML=NOTES.map(function(n){
+    return '<div class="tk-row"><span class="k">'+n.toLocaleString('en-US')+'₫</span>'+
+           '<span class="v">'+fmtPhp(n)+'</span></div>';
+  }).join('');
+}
+
+/* ============================================================
+   MAP
+   ============================================================ */
+var MAPCOL={
+  base:'#F5A33C', sight:'#5BC5A4', food:'#EE7358', coffee:'#D9A05B',
+  museum:'#7FA8E0', spa:'#C08BE0', onsen:'#5BC5D8', night:'#E0679E',
+  exp:'#E8C45C', work:'#8FA0B8'
+};
+var MAPLAB={
+  base:'Hotel', sight:'Sights', food:'Food', coffee:'Coffee', museum:'Museums',
+  spa:'Spa', onsen:'Onsen', night:'Nightlife', exp:'Experiences', work:'Books & work'
+};
+var map=null, layers={}, mapFilter='all', mapBuilt=false;
+
+function kmFrom(a,b){
+  var R=6371, r=Math.PI/180;
+  var dLa=(b.lat-a.lat)*r, dLo=(b.lon-a.lon)*r;
+  var x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)*Math.sin(dLo/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function walkMins(km){ return Math.max(1, Math.round(km/4.5*60)); }
+
+function pinned(){
+  return Object.keys(PLACES).filter(function(k){ return PLACES[k].lat!=null; });
+}
+
+function mapFallback(host){
+  if(mapBuilt) return;
+  mapBuilt=true;
+  host.innerHTML='<div class="map-fallback">The map could not load — you are probably offline.<br>Every place is still listed below, and each one opens in Google Maps.</div>';
+  showMissing(true);
+}
+
+var waitingForL=false;
+function buildMap(){
+  if(mapBuilt) return;
+  var host=document.getElementById('leafmap');
+  if(!host) return;
+  /* Leaflet is a deferred script, so it may not have arrived yet. Wait for it
+     rather than dropping straight to the fallback. */
+  if(typeof L==='undefined'){
+    if(waitingForL) return;
+    waitingForL=true;
+    var tag=document.querySelector('script[src*="leaflet"]');
+    if(tag){
+      tag.addEventListener('load', function(){ waitingForL=false; buildMap(); });
+      tag.addEventListener('error', function(){ waitingForL=false; mapFallback(host); });
+    }
+    setTimeout(function(){ if(typeof L==='undefined') mapFallback(host); else { waitingForL=false; buildMap(); } }, 9000);
+    return;
+  }
+  mapBuilt=true;
+  var H=PLACES.hotel;
+  map=L.map('leafmap',{scrollWheelZoom:false, zoomControl:true}).setView([H.lat,H.lon],14);
+  /* Standard OSM tiles need no API key; the dark look comes from a CSS filter on
+     the tile pane, so the map still matches the rest of the page. */
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom:19
+  }).addTo(map);
+
+  // walk rings: ~5 min and ~15 min at 4.5 km/h
+  [[375,'5 min walk'],[1125,'15 min walk']].forEach(function(r){
+    L.circle([H.lat,H.lon],{radius:r[0], color:'#F5A33C', weight:1, opacity:.33,
+      fillColor:'#F5A33C', fillOpacity:.04, dashArray:'4,5', interactive:false}).addTo(map);
+  });
+
+  var keys=pinned();
+  keys.forEach(function(k){
+    var p=PLACES[k];
+    var isHotel = k==='hotel';
+    var col=MAPCOL[p.c]||'#8FA0B8';
+    var m=L.circleMarker([p.lat,p.lon],{
+      radius: isHotel?10:6.5,
+      color: isHotel?'#0C1526':col,
+      weight: isHotel?3:1.5,
+      fillColor: col,
+      fillOpacity: isHotel?1:.88
+    });
+    var d=isHotel?null:kmFrom(PLACES.hotel,p);
+    var meta = isHotel ? 'Your base · 18–20 Phạm Phú Thứ'
+      : (MAPLAB[p.c]||p.c)+' · '+d.toFixed(d<10?1:0)+' km from the hotel'+(d<1.6?' · about '+walkMins(d)+' min on foot':'');
+    m.bindPopup(
+      '<div class="pop-n">'+esc(p.n)+'</div>'+
+      '<div class="pop-m">'+esc(meta)+'</div>'+
+      '<a class="pop-a" href="'+mapUrl(p.n)+'" target="_blank" rel="noopener">Open in Google Maps</a>'
+    );
+    if(!layers[p.c]) layers[p.c]=L.layerGroup().addTo(map);
+    m.addTo(layers[p.c]);
+  });
+
+  var pts=keys.map(function(k){ return [PLACES[k].lat, PLACES[k].lon]; });
+  map._allBounds = L.latLngBounds(pts).pad(0.12);
+  map.setView([H.lat,H.lon],14);
+
+  renderMapKey();
+  showMissing(false);
+}
+
+function renderMapChips(){
+  var el=document.getElementById('mapChips'); if(!el) return;
+  var cats={};
+  pinned().forEach(function(k){ var c=PLACES[k].c; if(c!=='base') cats[c]=(cats[c]||0)+1; });
+  var h='<button class="mapbtn '+(mapFilter==='all'?'on':'')+'" data-mf="all">All</button>';
+  Object.keys(cats).forEach(function(c){
+    h+='<button class="mapbtn" data-mf="'+c+'">'+esc(MAPLAB[c]||c)+' ('+cats[c]+')</button>';
+  });
+  h+='<button class="mapbtn" data-mact="hotel">↺ Back to hotel</button>'
+   + '<button class="mapbtn" data-mact="all">⤢ Fit everything</button>';
+  el.innerHTML=h;
+}
+function renderMapKey(){
+  var el=document.getElementById('mapKey'); if(!el) return;
+  var cats={};
+  pinned().forEach(function(k){ cats[PLACES[k].c]=1; });
+  el.innerHTML=Object.keys(cats).map(function(c){
+    return '<span><i style="background:'+MAPCOL[c]+'"></i>'+esc(MAPLAB[c]||c)+'</span>';
+  }).join('');
+}
+function setMapFilter(f){
+  mapFilter=f;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mf]'),function(b){
+    b.classList.toggle('on', b.dataset.mf===f);
+  });
+  if(!map) return;
+  Object.keys(layers).forEach(function(c){
+    var show = (f==='all' || f===c || c==='base');
+    if(show){ if(!map.hasLayer(layers[c])) map.addLayer(layers[c]); }
+    else { if(map.hasLayer(layers[c])) map.removeLayer(layers[c]); }
+  });
+}
+/* places with no known coordinates still need to be reachable */
+function showMissing(force){
+  var el=document.getElementById('mapMiss'); if(!el) return;
+  var miss=Object.keys(PLACES).filter(function(k){ return PLACES[k].lat==null; });
+  if(!miss.length){ el.hidden=true; return; }
+  el.hidden=false;
+  el.innerHTML='<h4>Not on the map — '+miss.length+' places</h4>'+
+    '<p>OpenStreetMap does not carry a location for these, and a pin in the wrong place is worse than none. Each one opens a Google Maps search instead.</p>'+
+    '<div class="mapmiss-list">'+miss.map(function(k){
+      return '<a href="'+mapUrl(PLACES[k].n)+'" target="_blank" rel="noopener">'+esc(PLACES[k].n)+'</a>';
+    }).join('')+'</div>';
+}
+
+/* ============================================================
+   CLOCKS
+   ============================================================ */
+function tickClocks(){
+  var now=new Date();
+  function part(tz){
+    try{
+      return {
+        t:new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(now),
+        d:new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'short',day:'numeric',month:'short'}).format(now)
+      };
+    }catch(e){ return {t:'—',d:'—'}; }
+  }
+  var m=part('Asia/Manila'), d=part('Asia/Ho_Chi_Minh');
+  var e;
+  if((e=document.getElementById('clkMnl'))) e.textContent=m.t;
+  if((e=document.getElementById('clkMnlD'))) e.textContent=m.d;
+  if((e=document.getElementById('clkDad'))) e.textContent=d.t;
+  if((e=document.getElementById('clkDadD'))) e.textContent=d.d;
+}
+
+/* ============================================================
+   WEATHER — Open-Meteo, no key
+   ============================================================ */
+var WMO={0:'☀',1:'🌤',2:'⛅',3:'☁',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌦',
+  61:'🌧',63:'🌧',65:'🌧',66:'🌧',67:'🌧',71:'🌨',80:'🌦',81:'🌧',82:'⛈',
+  95:'⛈',96:'⛈',99:'⛈'};
+var TRIP_START='2026-10-01', TRIP_END='2026-10-06';
+
+function loadWeather(){
+  var el=document.getElementById('wxDays'); if(!el) return;
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=16.0673&longitude=108.2243'
+      +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'
+      +'&timezone=Asia%2FBangkok&forecast_days=16')
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var d=j.daily; if(!d||!d.time) throw new Error('no data');
+      el.innerHTML=d.time.map(function(day,i){
+        var dt=new Date(day+'T00:00:00');
+        var dow=new Intl.DateTimeFormat('en-GB',{weekday:'short'}).format(dt);
+        var dm=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(dt);
+        var trip=(day>=TRIP_START&&day<=TRIP_END);
+        return '<div class="wx-d'+(trip?' trip':'')+'">'+
+          '<div class="wx-dow">'+dow+' '+dm+'</div>'+
+          '<div class="wx-ic">'+(WMO[d.weather_code[i]]||'·')+'</div>'+
+          '<div class="wx-t">'+Math.round(d.temperature_2m_max[i])+'°<small>/'+Math.round(d.temperature_2m_min[i])+'°</small></div>'+
+          '<div class="wx-r">'+(d.precipitation_probability_max[i]==null?'—':d.precipitation_probability_max[i]+'%')+'</div>'+
+        '</div>';
+      }).join('');
+      var last=d.time[d.time.length-1];
+      var note=document.getElementById('wxNote');
+      if(note && last < TRIP_START){
+        note.innerHTML='Live forecast only reaches <b>'+last+'</b>, which is still short of 1 October — check again a week out. '
+          +'Early October is the start of the wet season and sits inside typhoon season: expect heat, humidity and heavy afternoon rain, '
+          +'and keep Day 3 and Day 4 swappable.';
+      }
+    })
+    .catch(function(){
+      el.innerHTML='<span style="color:var(--mute-2);font-size:12.5px">Forecast unavailable offline — it will fill in when you have a connection.</span>';
+    });
+}
+
+/* ============================================================
+   PHRASES + CHECKLIST
+   ============================================================ */
+var PHRASES=[
+  ['Hello','Xin chào','sin chow'],
+  ['Thank you','Cảm ơn','gaam uhn'],
+  ['Sorry / excuse me','Xin lỗi','sin loy'],
+  ['Yes / no','Dạ · Không','ya · khom'],
+  ['How much?','Bao nhiêu tiền?','bow nyew tien'],
+  ['Too expensive','Đắt quá','dat kwaa'],
+  ['The bill, please','Tính tiền','ting tien'],
+  ['Delicious','Ngon quá','ngon kwaa'],
+  ['No ice','Không đá','khom daa'],
+  ['Less sweet','Ít ngọt','it ngot'],
+  ['Not spicy','Không cay','khom kai'],
+  ['I am vegetarian','Tôi ăn chay','toy an chai'],
+  ['I am allergic to…','Tôi bị dị ứng với…','toy bee zee ung vuh-ee'],
+  ['Where is the toilet?','Nhà vệ sinh ở đâu?','nyaa veh sing uh dow'],
+  ['Help!','Cứu tôi!','kuu toy'],
+  ['Hospital','Bệnh viện','bing vien'],
+  ['I do not understand','Tôi không hiểu','toy khom hyew'],
+  ['Take me to this address','Cho tôi đến địa chỉ này','cho toy den dia chee nai']
+];
+function renderPhrases(){
+  var el=document.getElementById('phrases'); if(!el) return;
+  el.innerHTML=PHRASES.map(function(p){
+    return '<div class="ph-row"><span class="ph-en">'+esc(p[0])+'</span>'+
+           '<span class="ph-vi">'+esc(p[1])+'</span>'+
+           '<span class="ph-sa">'+esc(p[2])+'</span></div>';
+  }).join('');
+}
+
+var CHECK=[
+  'Passport, 6+ months validity',
+  'Return / onward ticket on phone',
+  'Travel insurance details saved offline',
+  'Peso cash to exchange, or ATM card enabled for overseas',
+  'Tell the bank you are travelling',
+  'eSIM bought, or plan to buy at DAD',
+  'Grab app installed and card added',
+  'Offline map of Đà Nẵng downloaded',
+  'Hotel address saved in Vietnamese',
+  'Bà Nà Hills tickets booked online',
+  'Cooking class / cruise booked',
+  'Light rain jacket or poncho',
+  'Sunscreen and mosquito repellent',
+  'Power bank and Type A charger',
+  'Any regular medication, plus rehydration salts',
+  'Copies of documents in your email'
+];
+function renderCheck(){
+  var el=document.getElementById('ckList'); if(!el) return;
+  var done={};
+  try{ done=JSON.parse(localStorage.getItem('dn_check')||'{}'); }catch(e){}
+  el.innerHTML=CHECK.map(function(c,i){
+    return '<label><input type="checkbox" data-ck="'+i+'"'+(done[i]?' checked':'')+'><span>'+esc(c)+'</span></label>';
+  }).join('');
+}
+
+/* ============================================================
+   TOOLKIT TABS
+   ============================================================ */
+var TKTABS=[['money','Money'],['sos','Emergency'],['time','Time & weather'],['say','Vietnamese'],['prep','Entry & packing']];
+function renderTkTabs(){
+  var el=document.getElementById('tkTabs'); if(!el) return;
+  el.innerHTML=TKTABS.map(function(t,i){
+    return '<button class="tk-tab'+(i===0?' on':'')+'" data-tk="'+t[0]+'">'+esc(t[1])+'</button>';
+  }).join('');
+  setTk('money');
+}
+function setTk(k){
+  Array.prototype.forEach.call(document.querySelectorAll('.tk-tab'),function(b){
+    b.classList.toggle('on', b.dataset.tk===k);
+  });
+  TKTABS.forEach(function(t){
+    var p=document.getElementById('tk-'+t[0]);
+    if(p) p.classList.toggle('on', t[0]===k);
+  });
+  if(k==='time') tickClocks();
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+document.addEventListener('click',function(e){
+  var t=e.target.closest ? e.target.closest('[data-mf],[data-mact],[data-tk],[data-cur],[data-q]') : null;
+  if(!t) return;
+  if(t.dataset.mf){ setMapFilter(t.dataset.mf); }
+  else if(t.dataset.mact){
+    if(!map) return;
+    if(t.dataset.mact==='hotel') map.setView([PLACES.hotel.lat,PLACES.hotel.lon],15);
+    else if(map._allBounds) map.fitBounds(map._allBounds);
+  }
+  else if(t.dataset.tk){ setTk(t.dataset.tk); }
+  else if(t.dataset.cur){ setCur(t.dataset.cur); }
+  else if(t.dataset.q){
+    var v=document.getElementById('convVnd');
+    if(v){ v.value=(+t.dataset.q).toLocaleString('en-US'); renderConv(v); }
+  }
+});
+document.addEventListener('input',function(e){
+  if(e.target.id==='convVnd'||e.target.id==='convPhp'||e.target.id==='convUsd') renderConv(e.target);
+});
+document.addEventListener('change',function(e){
+  if(e.target.dataset && e.target.dataset.ck!=null){
+    var done={};
+    try{ done=JSON.parse(localStorage.getItem('dn_check')||'{}'); }catch(e2){}
+    done[e.target.dataset.ck]=e.target.checked;
+    try{ localStorage.setItem('dn_check',JSON.stringify(done)); }catch(e2){}
+  }
+});
+
+function initExtras(){
+  try{ var c=localStorage.getItem('dn_cur'); if(c==='php'||c==='vnd') CUR=c; }catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll('.curtog button'),function(b){
+    b.classList.toggle('on', b.dataset.cur===CUR);
+  });
+  renderMapChips(); renderQuick(); renderNotes(); renderPhrases(); renderCheck(); renderTkTabs();
+  renderConv(document.getElementById('convVnd'));
+  loadFx(); loadWeather();
+  tickClocks(); setInterval(tickClocks,30000);
+
+  var reset=document.getElementById('ckReset');
+  if(reset) reset.addEventListener('click',function(){
+    try{ localStorage.removeItem('dn_check'); }catch(e){}
+    renderCheck();
+  });
+
+  /* Build the map only when it comes into view — the tiles are the heaviest thing
+     on the page and most of a trip is spent in the day-by-day section. */
+  var sec=document.getElementById('mapsec');
+  if(sec && 'IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(en){
+      if(en.some(function(x){return x.isIntersecting;})){ buildMap(); io.disconnect(); }
+    },{rootMargin:'250px'});
+    io.observe(sec);
+    /* Belt and braces: some browsers throttle observers in backgrounded or
+       reduced-power tabs, so a plain scroll check can still trigger the build. */
+    var onScroll=function(){
+      if(mapBuilt){ window.removeEventListener('scroll',onScroll); return; }
+      if(sec.getBoundingClientRect().top < window.innerHeight+400){
+        buildMap(); window.removeEventListener('scroll',onScroll);
+      }
+    };
+    window.addEventListener('scroll',onScroll,{passive:true});
+  } else {
+    buildMap();
+  }
+}
+
 /* ---------- INIT ---------- */
 renderRadius();
 buildIndex();
@@ -1500,6 +2481,7 @@ renderChips();
 renderLib();
 renderBudget();
 renderTray();
+initExtras();
 
 Promise.resolve(loadCustom()).then(function(){
   return new Promise(function(res){
