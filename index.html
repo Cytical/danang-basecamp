@@ -342,11 +342,12 @@
   .opt-wrap .opt{flex:1;}
   .opt.is-mine{border-style:dashed; border-color:var(--jade);}
   .opt.is-mine.is-picked{border-style:solid; border-color:var(--signal);}
-  .opt-edit{
-    position:absolute; right:8px; bottom:8px;
+  .opt-actions{position:absolute; right:8px; bottom:8px; display:flex; gap:6px;}
+  .opt-info,.opt-edit{
     background:var(--ink-3); border:1px solid var(--ink-4); color:var(--mute);
-    width:24px; height:24px; border-radius:6px; font-size:11px; line-height:1; padding:0;
+    width:24px; height:24px; border-radius:6px; font-size:12px; line-height:1; padding:0;
   }
+  .opt-info:hover{border-color:var(--signal); color:var(--signal);}
   .opt-edit:hover{border-color:var(--jade); color:var(--jade);}
   .mine-tag{
     font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.1em;
@@ -1646,7 +1647,10 @@ function optHTML(o,key){
         (o.warn?'<span class="opt-warn">▲ '+esc(o.warn)+'</span>':'')+
       '</span>'+
     '</button>'+
-    (o.mine?'<button class="opt-edit" data-edit="'+o.id+'" aria-label="Edit this listing">✎</button>':'')+
+    '<div class="opt-actions">'+
+      '<button class="opt-info" data-detail="'+o.id+'" aria-label="More info">ⓘ</button>'+
+      (o.mine?'<button class="opt-edit" data-edit="'+o.id+'" aria-label="Edit this listing">✎</button>':'')+
+    '</div>'+
   '</div>';
 }
 
@@ -1772,7 +1776,9 @@ function renderLib(){
 
 /* ---------- RENDER: DETAIL ---------- */
 function findEntry(id){
-  return custom.concat(EXTRAS).filter(function(e){return e.id===id;})[0]||null;
+  var hit=custom.concat(EXTRAS).filter(function(e){return e.id===id;})[0];
+  if(hit) return hit;
+  return (optIndex[id]&&optIndex[id].opt)||null;
 }
 function openDetail(id){
   var e=findEntry(id);
